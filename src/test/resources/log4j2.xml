@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Location: src/test/resources/log4j2.xml -->
+<Configuration status="WARN" monitorInterval="30">
+
+    <Properties>
+        <!-- Log output folder -->
+        <Property name="LOG_DIR">test-output/logs</Property>
+        <!-- Log line pattern: timestamp | level | class | message -->
+        <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n</Property>
+    </Properties>
+
+    <Appenders>
+
+        <!-- Console output (visible in IntelliJ run window) -->
+        <Console name="ConsoleAppender" target="SYSTEM_OUT">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+        </Console>
+
+        <!-- Rolling file — new file each test run, keeps last 10 -->
+        <RollingFile name="FileAppender"
+                     fileName="${LOG_DIR}/ecommerce-test.log"
+                     filePattern="${LOG_DIR}/ecommerce-test-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                <SizeBasedTriggeringPolicy size="10MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="10"/>
+        </RollingFile>
+
+    </Appenders>
+
+    <Loggers>
+        <!-- Framework classes — DEBUG level for detailed tracing -->
+        <Logger name="com.portfolio.ecommerce" level="DEBUG" additivity="false">
+            <AppenderRef ref="ConsoleAppender"/>
+            <AppenderRef ref="FileAppender"/>
+        </Logger>
+
+        <!-- Playwright internal logs — INFO only (too noisy at DEBUG) -->
+        <Logger name="com.microsoft.playwright" level="INFO" additivity="false">
+            <AppenderRef ref="ConsoleAppender"/>
+        </Logger>
+
+        <!-- Root fallback -->
+        <Root level="INFO">
+            <AppenderRef ref="ConsoleAppender"/>
+            <AppenderRef ref="FileAppender"/>
+        </Root>
+    </Loggers>
+
+</Configuration>

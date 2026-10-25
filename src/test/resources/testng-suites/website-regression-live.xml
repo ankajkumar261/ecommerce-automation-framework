@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+
+<!--
+  Live read-only: the subset of Regression that is safe to point at production
+  (example.com). Every class here only reads — the only POSTs are logins.
+
+  Deliberately EXCLUDED because they write to whatever env they run against:
+    CartWishlistApiTest, CheckoutAddressApiTest, StorefrontCartTest,
+    StorefrontCheckoutTest, VendorAddProductTest, VendorProductValidationApiTest,
+    AdminVendorDuplicateDetectionTest, BookingLifecycleApiTest,
+    ReturnsLifecycleApiTest, OrderLifecycleApiTest, OrderLifecyclePositiveApiTest,
+    DirectPaymentRecordApiTest, and all three e2e.* classes (they flip a real
+    vendor's approval status and advance real order statuses).
+-->
+<suite name="Website regression (live, read-only)" verbose="1" parallel="false">
+
+    <test name="Authentication">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.website.admin.AdminLoginTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.vendor.VendorLoginTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.storefront.StorefrontLoginTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.session.SessionSecurityTest"/>
+        </classes>
+    </test>
+
+    <test name="Vendor (read-only)">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.website.vendor.VendorApprovalGateApiTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.vendor.VendorStateRedirectTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.vendor.VendorAddProductNegativeTest"/>
+        </classes>
+    </test>
+
+    <test name="Storefront (read-only)">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.website.storefront.StorefrontProductInvariantsApiTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.storefront.StorefrontDiscoveryApiTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.storefront.AccountProtectedRoutesTest"/>
+        </classes>
+    </test>
+
+    <test name="Read-only API surfaces">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.website.returns.ReturnEligibilityApiTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.payment.PaymentsPayoutsApiTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.communication.NotificationsChatSupportApiTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.measurement.MeasurementPresetsApiTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.admin.ConfigModulesApiTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.service.ServiceBookingApiTest"/>
+        </classes>
+    </test>
+
+    <test name="Authorisation (RBAC)">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.website.rbac.RbacNegativeApiTest"/>
+        </classes>
+    </test>
+
+</suite>

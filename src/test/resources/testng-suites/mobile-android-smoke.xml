@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+
+<!--
+  Mobile (Android) SMOKE — currently the LAUNCH SPIKE only.
+
+  One check: a UiAutomator2 session forms, the app starts, and Home renders. That is the whole
+  point of it — the plumbing that has nothing to do with locators (driver factory, session,
+  app lifecycle, tree access) proved on one test rather than on forty-five.
+
+  Run:  mvn test -Pmobile-android
+        mvn test -Pmobile-android -Dmobile.udid=emulator-5554     (when several devices attached)
+
+  Prerequisites:
+    1. Appium running:        appium               (http://127.0.0.1:4723)
+    2. A device or emulator:  adb devices          (emulator -avd ecommerce_api36 -no-boot-anim)
+    3. The app installed:     adb install -r app-release.apk       (com.example.storefront)
+
+  WHY THIS IS NOT THE 45 iOS CHECKS. The Android app is Jetpack Compose and exposes no
+  testTag / resource-id values today: a dump of Home showed 63 nodes with exactly one
+  resource-id (android:id/content, the framework's own) and four content-descs, and all 14
+  clickable nodes carried neither text nor content-desc of their own. Porting the suite onto
+  visible-copy locators would produce 45 tests that break on the next wording change. The port
+  proper waits on the app setting:
+
+      Modifier.semantics { testTagsAsResourceId = true }   // once, at the root
+      Modifier.testTag("...")                              // on the interactive elements
+
+  at which point the locators go into BaseScreen#platformBy alongside their iOS counterparts and
+  the existing tests run on both platforms unchanged.
+-->
+<suite name="Mobile (Android) — smoke" verbose="1" parallel="false">
+
+    <listeners>
+        <!-- Env guard + the Allure environment block (which device and app build produced this). -->
+        <listener class-name="com.portfolio.ecommerce.mobile.listeners.MobileSuiteListener"/>
+    </listeners>
+
+    <!-- Plumbing first: if the session cannot form, nothing below is meaningful. -->
+    <test name="App shell">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.mobile.android.AndroidLaunchTest"/>
+            <class name="com.portfolio.ecommerce.tests.mobile.android.AndroidHomeTest"/>
+        </classes>
+    </test>
+
+    <test name="Product detail">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.mobile.android.AndroidProductDetailTest"/>
+        </classes>
+    </test>
+
+    <!-- Sign in AFTER the guest-facing checks: the session is shared, so signing in early would
+         leave every later test authenticated and the guest entry point uncheckable. -->
+    <test name="Authentication">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.mobile.android.AndroidLoginTest"/>
+        </classes>
+    </test>
+
+    <test name="Search">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.mobile.android.AndroidSearchTest"/>
+        </classes>
+    </test>
+
+    <test name="Browse categories">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.mobile.android.AndroidCategoryTest"/>
+        </classes>
+    </test>
+
+    <!-- Cart and checkout need an authenticated session, so they run after Authentication. -->
+    <test name="Cart">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.mobile.android.AndroidCartTest"/>
+        </classes>
+    </test>
+
+    <test name="Checkout">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.mobile.android.AndroidCheckoutTest"/>
+        </classes>
+    </test>
+
+</suite>

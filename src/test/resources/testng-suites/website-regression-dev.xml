@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+
+<!--
+  Website REGRESSION — DEV. Everything: auth, vendor, storefront, returns, paymen
+  services, order lifecycle, end-to-end flows, and online payment (test mode). Mutating —
+  DEV ONLY. Run nightly / before release:
+    mvn test -Pregression                       (env defaults to dev)
+    mvn test -Pregression -Dpayment.testmode=true   (also exercise online payment)
+-->
+<suite name="Website regression (dev)" verbose="1" parallel="false">
+
+    <test name="Authentication">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.website.admin.AdminLoginTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.vendor.VendorLoginTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.storefront.StorefrontLoginTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.session.SessionSecurityTest"/>
+        </classes>
+    </test>
+
+    <test name="Vendor">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.website.vendor.VendorApprovalGateApiTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.vendor.VendorStateRedirectTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.admin.AdminVendorDuplicateDetectionTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.vendor.VendorAddProductTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.vendor.VendorAddProductNegativeTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.vendor.VendorProductValidationApiTest"/>
+        </classes>
+    </test>
+
+    <test name="Storefront">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.website.storefront.StorefrontProductInvariantsApiTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.storefront.StorefrontDiscoveryApiTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.storefront.CartWishlistApiTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.storefront.CheckoutAddressApiTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.storefront.AccountProtectedRoutesTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.storefront.StorefrontCheckoutTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.storefront.StorefrontCartTest"/>
+        </classes>
+    </test>
+
+    <test name="Returns">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.website.returns.ReturnEligibilityApiTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.returns.ReturnsLifecycleApiTest"/>
+        </classes>
+    </test>
+
+    <test name="Payments">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.website.payment.PaymentsPayoutsApiTest"/>
+        </classes>
+    </test>
+
+    <test name="Communication">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.website.communication.NotificationsChatSupportApiTest"/>
+        </classes>
+    </test>
+
+    <test name="Measurements">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.website.measurement.MeasurementPresetsApiTest"/>
+        </classes>
+    </test>
+
+    <test name="Admin configuration">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.website.admin.ConfigModulesApiTest"/>
+        </classes>
+    </test>
+
+    <test name="Authorisation (RBAC)">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.website.rbac.RbacNegativeApiTest"/>
+        </classes>
+    </test>
+
+    <test name="Services">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.website.service.ServiceBookingApiTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.service.BookingLifecycleApiTest"/>
+        </classes>
+    </test>
+
+    <test name="Order lifecycle">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.website.order.OrderLifecycleApiTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.order.OrderLifecyclePositiveApiTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.order.DirectPaymentRecordApiTest"/>
+        </classes>
+    </test>
+
+    <test name="End to End">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.website.e2e.VendorToAdminApprovalE2ETest"/>
+            <class name="com.portfolio.ecommerce.tests.website.e2e.VendorToAdminRejectE2ETest"/>
+            <class name="com.portfolio.ecommerce.tests.website.e2e.AdminOrderStatusE2ETest"/>
+        </classes>
+    </test>
+
+    <!--
+      Online payment (Razorpay TEST MODE). Guarded by payment.testmode: the test skips unless
+      it is turned on deliberately, so it never fires against a real gateway.
+        Run it:  mvn test -Pregression -Dpayment.testmode=true
+    -->
+    <test name="Online payment">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.website.storefront.StorefrontOnlinePaymentTest"/>
+        </classes>
+    </test>
+
+</suite>

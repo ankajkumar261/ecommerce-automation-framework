@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+
+<!--
+  Mobile (Android) REGRESSION — the full customer-app suite for Android.
+
+  Run:  mvn test -Pmobile-android
+        mvn test -Pmobile-android -DsuiteFile=src/test/resources/testng-suites/mobile-android-regression.xml
+
+  Prerequisites:
+    1. Appium running with ANDROID_HOME exported (the UiAutomator2 driver needs the SDK):
+         ANDROID_HOME=~/Library/Android/sdk appium
+    2. An emulator booted (e.g. the ecommerce_api36 AVD):  emulator -avd ecommerce_api36
+    3. The app installed on it (package com.example.storefront)
+
+  ONE SESSION, ONE LOGIN, like the iOS suite: the driver is created once and reused, each test
+  starts from Home (AndroidBaseTest#resetToHome), and account-gated tests sign in once via the
+  run-scoped AndroidBaseTest#ensureSignedIn. Public browsing runs first; account writes last.
+
+  Android locates elements by Compose testTags where the app exposes them; several screens
+  (Account, Support, Policy, Orders, Chat) are untagged in this build and are located by their
+  visible text — see the individual screen objects.
+-->
+<suite name="Mobile (Android) — regression" verbose="1" parallel="false">
+
+    <!-- 1. App shell / launch. -->
+    <test name="App shell">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.mobile.android.AndroidLaunchTest"/>
+            <class name="com.portfolio.ecommerce.tests.mobile.android.AndroidHomeTest"/>
+        </classes>
+    </test>
+
+    <!-- 2. Sign in. -->
+    <test name="Sign in">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.mobile.android.AndroidLoginTest"/>
+        </classes>
+    </test>
+
+    <!--
+      3. Public browsing — products, categories, scrolling, shop, then search.
+      Category and Scrolling run right after the product block so they start from a freshly
+      loaded Home; the Search tests run last in this block because they leave the app on the
+      Search tab with a lingering query.
+    -->
+    <test name="Browse, search and categories">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.mobile.android.AndroidProductDetailTest"/>
+            <class name="com.portfolio.ecommerce.tests.mobile.android.AndroidCategoryTest"/>
+            <class name="com.portfolio.ecommerce.tests.mobile.android.AndroidScrollingTest"/>
+            <class name="com.portfolio.ecommerce.tests.mobile.android.AndroidShopTest"/>
+            <class name="com.portfolio.ecommerce.tests.mobile.android.AndroidSearchTest"/>
+            <class name="com.portfolio.ecommerce.tests.mobile.android.AndroidSearchExtendedTest"/>
+        </classes>
+    </test>
+
+    <!-- 4. Server-side state: cart and checkout. -->
+    <test name="Cart and checkout">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.mobile.android.AndroidCartTest"/>
+            <class name="com.portfolio.ecommerce.tests.mobile.android.AndroidCheckoutTest"/>
+        </classes>
+    </test>
+
+    <!-- 5. Account-gated: profile, chat, support and policies. -->
+    <test name="Account, chat and support">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.mobile.android.AndroidAccountTest"/>
+            <class name="com.portfolio.ecommerce.tests.mobile.android.AndroidChatTest"/>
+            <class name="com.portfolio.ecommerce.tests.mobile.android.AndroidSupportAndPolicyTest"/>
+        </classes>
+    </test>
+
+</suite>

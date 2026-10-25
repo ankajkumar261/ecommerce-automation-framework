@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+
+<!--
+  Website SMOKE — LIVE (read-only). Fast confidence checks safe to point at production
+  (example). Every class here only READS; the sole POSTs are the logins. Nothing creates
+  products, orders, returns, or any other real data on the live backend.
+
+  Run:  mvn test -Psmoke-live          (or: mvn test -Denv=live -DsuiteFile=.../website-smoke-live.xml)
+-->
+<suite name="Website smoke (live, read-only)" verbose="1" parallel="false">
+
+    <test name="Login smoke (admin + vendor + storefront)">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.website.admin.AdminLoginTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.vendor.VendorLoginTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.storefront.StorefrontLoginTest"/>
+        </classes>
+    </test>
+
+    <!-- Read-only storefront surfaces — safe on production. -->
+    <test name="Storefront (read-only)">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.website.storefront.StorefrontProductInvariantsApiTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.storefront.StorefrontDiscoveryApiTest"/>
+        </classes>
+    </test>
+
+</suite>

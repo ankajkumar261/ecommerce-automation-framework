@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+
+<!--
+  Mobile (iOS) SMOKE — the shortest run that proves the app is worth testing further.
+
+  Nine checks, one per critical surface: the app launches, the guest gate holds, a shopper can
+  sign in, a product opens, it reaches the cart, it can be saved, search returns something, a
+  category opens, and checkout offers Cash on Delivery. Target: under 6 minutes.
+
+  Run:  mvn test -Pmobile-smoke
+        mvn test -DsuiteFile=src/test/resources/testng-suites/mobile-smoke.xml
+
+  Prerequisites:
+    1. Appium running:            appium              (listens on http://127.0.0.1:4723)
+    2. The target simulator booted (mobile.udid in config-dev.properties):
+         xcrun simctl boot 42E8A933-3202-4D32-BA33-0B61730170B4
+    3. The app installed on it (bundle com.example.storefront)
+
+  The app only talks to the DEV backend, so this suite refuses to run with -Denv=live —
+  MobileSuiteListener fails the run rather than let a report be stamped with the wrong
+  environment. See mobile.supported.env in config-*.properties.
+
+  WHY METHODS ARE LISTED EXPLICITLY rather than selected by <groups>: this suite shares ONE
+  app session and ONE login, so the guest checks must run before anything signs in — which
+  means fixed <test> blocks either way. And WishlistTest contributes a method to TWO of those
+  blocks (its guest gate early, its save test later), so the blocks need method-level includes
+  regardless. Mixing those with a group filter makes which-wins TestNG-version-dependent;
+  listing them is unambiguous. The matching @Test methods also carry groups={"mobile-smoke"}
+  so an ad-hoc `mvn test -Dgroups=mobile-smoke` still finds them.
+-->
+<suite name="Mobile (iOS) — smoke" verbose="1" parallel="false">
+
+    <listeners>
+        <!-- Env guard + the Allure environment block (which simulator produced this report). -->
+        <listener class-name="com.portfolio.ecommerce.mobile.listeners.MobileSuiteListener"/>
+        <!-- Attaches MobileRetryAnalyzer to every @Test; honours retry.count from config. -->
+        <listener class-name="com.portfolio.ecommerce.mobile.listeners.MobileRetryTransformer"/>
+    </listeners>
+
+    <!-- Guest state: must run before anything signs in. -->
+    <test name="App shell and guest gates">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.mobile.HomeScreenTest">
+                <methods><include name="homeScreenLoads"/></methods>
+            </class>
+            <class name="com.portfolio.ecommerce.tests.mobile.WishlistTest">
+                <methods><include name="guestTappingHeartIsAskedToSignIn"/></methods>
+            </class>
+        </classes>
+    </test>
+
+    <!-- Signs in and leaves the app authenticated for everything below. -->
+    <test name="Sign in">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.mobile.LoginTest">
+                <methods><include name="customerSignsIn"/></methods>
+            </class>
+        </classes>
+    </test>
+
+    <test name="Browse and search">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.mobile.ProductBrowseTest">
+                <methods><include name="opensProductDetailFromHome"/></methods>
+            </class>
+            <class name="com.portfolio.ecommerce.tests.mobile.SearchTest">
+                <methods><include name="searchReturnsMatchingProducts"/></methods>
+            </class>
+            <class name="com.portfolio.ecommerce.tests.mobile.CategoryBrowseTest">
+                <methods><include name="tappingCategoryOpensItsListing"/></methods>
+            </class>
+        </classes>
+    </test>
+
+    <test name="Cart and wishlist">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.mobile.CartTest">
+                <methods><include name="addingProductPutsItInCart"/></methods>
+            </class>
+            <class name="com.portfolio.ecommerce.tests.mobile.WishlistTest">
+                <methods><include name="savingProductAddsItToTheWishlist"/></methods>
+            </class>
+        </classes>
+    </test>
+
+    <!-- Asserts what checkout OFFERS. Never places an order. -->
+    <test name="Checkout">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.mobile.CheckoutTest">
+                <methods><include name="codEligibleProductOffersCashOnDelivery"/></methods>
+            </class>
+        </classes>
+    </test>
+
+</suite>

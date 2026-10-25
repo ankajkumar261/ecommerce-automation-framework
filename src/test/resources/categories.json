@@ -1,0 +1,22 @@
+[
+  {
+    "name": "Known Bugs (open app defects)",
+    "messageRegex": ".*KNOWN BUG.*",
+    "matchedStatuses": ["skipped", "failed", "broken"]
+  },
+  {
+    "name": "Product defects (BOUT tickets)",
+    "messageRegex": ".*BOUT-[0-9A-Za-z]+.*",
+    "matchedStatuses": ["failed", "skipped"]
+  },
+  {
+    "name": "Infrastructure / environment problems",
+    "messageRegex": ".*(Timeout|ERR_CONNECTION|net::|ECONNREFUSED|navigating to).*",
+    "matchedStatuses": ["broken", "failed"]
+  },
+  {
+    "name": "Test maintenance (selectors / locators)",
+    "messageRegex": ".*(strict mode violation|no element|locator resolved to|waiting for locator).*",
+    "matchedStatuses": ["broken", "failed"]
+  }
+]

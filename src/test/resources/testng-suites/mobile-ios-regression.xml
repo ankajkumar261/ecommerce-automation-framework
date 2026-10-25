@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+
+<!--
+  Mobile (iOS) REGRESSION — the full customer-app suite.
+
+  Run:  mvn test -Pmobile
+        mvn test -DsuiteFile=src/test/resources/testng-suites/mobile-regression.xml
+
+  Prerequisites:
+    1. Appium running:            appium              (listens on http://127.0.0.1:4723)
+    2. The target simulator booted (mobile.udid in config-dev.properties):
+         xcrun simctl boot 42E8A933-3202-4D32-BA33-0B61730170B4
+    3. The app installed on it (bundle com.example.storefront)
+
+  The app only talks to the DEV backend, so this suite refuses to run with -Denv=live —
+  MobileSuiteListener fails the run rather than let a report be stamped with the wrong
+  environment. See mobile.supported.env in config-*.properties.
+
+  ONE SESSION, ONE LOGIN. The app launches once for the whole suite and the shopper signs in
+  once (MobileBaseTest#ensureSignedIn); between test methods the app is walked back to the
+  Home tab rather than relaunched. Tests still reset their own DATA — the cart and wishlist
+  are server-side and survive between runs, so each clears before and after itself.
+
+  BLOCK ORDER IS THE DESIGN, not decoration:
+    - everything needing the guest state runs FIRST, before anything signs in;
+    - the sign-in block establishes the session every later block inherits;
+    - read-only browsing comes before anything that writes;
+    - account WRITES come after the checkout blocks, which depend on a saved address existing;
+    - anything that relaunches the app, or signs out, runs LAST — a relaunch drops the shared
+      login, so placing those early would cost every following block a fresh sign-in.
+  Order is an optimisation, not a correctness requirement: each test asserts the auth state it
+  needs and will flip it if run some other way (or on its own from the IDE).
+-->
+<suite name="Mobile (iOS) — regression" verbose="1" parallel="false">
+
+    <listeners>
+        <!-- Env guard + the Allure environment block (which simulator produced this report). -->
+        <listener class-name="com.portfolio.ecommerce.mobile.listeners.MobileSuiteListener"/>
+        <!-- Attaches MobileRetryAnalyzer to every @Test; honours retry.count from config. -->
+        <listener class-name="com.portfolio.ecommerce.mobile.listeners.MobileRetryTransformer"/>
+    </listeners>
+
+    <!--
+      1. Guest state and app shell. Must precede any successful sign-in.
+      LoginNegativeTest belongs here rather than with LoginTest: a rejected sign-in leaves the
+      app a guest, which is exactly the state this block wants, and running it after the shared
+      sign-in would throw that session away.
+    -->
+    <test name="App shell and guest gates">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.mobile.HomeScreenTest"/>
+            <class name="com.portfolio.ecommerce.tests.mobile.WishlistTest">
+                <methods>
+                    <include name="guestTappingHeartIsAskedToSignIn"/>
+                </methods>
+            </class>
+            <class name="com.portfolio.ecommerce.tests.mobile.LoginNegativeTest"/>
+        </classes>
+    </test>
+
+    <!-- 2. The login test itself. It leaves the app signed in for everything below. -->
+    <test name="Sign in">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.mobile.LoginTest"/>
+        </classes>
+    </test>
+
+    <!--
+      3. Browsing is public, so these are mostly indifferent to the auth state.
+      ProductDetailTest is the exception in one place: its quantity test adds to the cart, and
+      it clears up after itself.
+    -->
+    <test name="Browse, search and categories">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.mobile.ProductBrowseTest"/>
+            <class name="com.portfolio.ecommerce.tests.mobile.ProductDetailTest"/>
+            <class name="com.portfolio.ecommerce.tests.mobile.SearchTest"/>
+            <class name="com.portfolio.ecommerce.tests.mobile.CategoryBrowseTest"/>
+        </classes>
+    </test>
+
+    <!-- 4. Server-side state. Every test here clears before AND after itself. -->
+    <test name="Cart and wishlist">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.mobile.CartTest">
+                <methods>
+                    <!-- Relaunches the app, which drops the shared login — deferred to block 6. -->
+                    <exclude name="cartSurvivesAnAppRelaunch"/>
+                </methods>
+            </class>
+            <class name="com.portfolio.ecommerce.tests.mobile.WishlistTest">
+                <methods>
+                    <!-- Already run in the guest block above. -->
+                    <exclude name="guestTappingHeartIsAskedToSignIn"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+
+    <!--
+      5. Checkout. These assert what the Checkout screen OFFERS for a given cart; they do not
+      place an order, so the suite stays safe to run repeatedly. COD is a per-product flag, so
+      the COD test adds the product named by checkout.cod.product rather than whatever is
+      first on Home.
+    -->
+    <test name="Checkout">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.mobile.CheckoutTest"/>
+        </classes>
+    </test>
+
+    <!--
+      6. Scrolling — public browsing; run early so a crash here is caught before any writes.
+      These validate that long content screens (Home, Shop, Product Detail, Category) scroll
+      from top to bottom without freezing or crashing.
+    -->
+    <test name="Scrolling validation">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.mobile.ScrollingTest"/>
+        </classes>
+    </test>
+
+    <!--
+      7. Shop tab — the dedicated product/service browser with filter chips.
+      Mostly public; the service booking flow (TC-IOS056) calls ensureSignedIn() and is the
+      first test in the suite to exercise the Book flow.
+    -->
+    <test name="Shop tab">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.mobile.ShopTest"/>
+        </classes>
+    </test>
+
+    <!--
+      8. Extended search — partial names, empty input, storefront/service queries, scope filters.
+      Public browsing; extends the coverage from the basic SearchTest in block 3.
+    -->
+    <test name="Extended search">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.mobile.SearchExtendedTest"/>
+        </classes>
+    </test>
+
+    <!--
+      9. Account / Profile — My Orders, order status filters, order detail, and navigation.
+      Requires a signed-in shopper (ensureSignedIn is called at the start of each test).
+    -->
+    <test name="Account and profile">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.mobile.AccountTest"/>
+        </classes>
+    </test>
+
+    <!--
+      10. Chat — conversation list, message bubbles, sending, navigation.
+      Requires a signed-in shopper. Conversations may or may not exist; tests skip gracefully.
+    -->
+    <test name="Chat">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.mobile.ChatTest"/>
+        </classes>
+    </test>
+
+    <!--
+      11. Support, Privacy Policy and Terms & Conditions.
+      Requires a signed-in shopper. Runs last among the account-linked screens so a failure
+      here does not strand earlier tests outside the Profile tab.
+    -->
+    <test name="Support and policies">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.mobile.SupportAndPolicyTest"/>
+        </classes>
+    </test>
+
+    <!--
+      12. Session and teardown — LAST on purpose.
+
+      Everything here destroys the run's shared login: the relaunch tests drop the session as a
+      side effect, and the sign-out test does it deliberately. Placed anywhere earlier, every
+      following block would pay for a fresh sign-in — which is exactly why this sits after the
+      account-linked blocks above rather than before them.
+
+      signingOutReturnsTheAppToTheGuestState is listed after the relaunch tests for the same
+      reason — it is the one that should leave the app signed out for good.
+    -->
+    <test name="Session and teardown">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.mobile.CartTest">
+                <methods>
+                    <include name="cartSurvivesAnAppRelaunch"/>
+                </methods>
+            </class>
+            <class name="com.portfolio.ecommerce.tests.mobile.SessionTest">
+                <methods>
+                    <include name="wishlistSurvivesAnAppRelaunch"/>
+                    <include name="signingOutReturnsTheAppToTheGuestState"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+
+</suite>

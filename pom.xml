@@ -1,0 +1,642 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- ─────────────────────────────────────────
+         PROJECT COORDINATES
+    ───────────────────────────────────────── -->
+    <groupId>com.portfolio.ecommerce</groupId>
+    <artifactId>ecommerce-automation</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+    <name>E-commerce Test Automation Framework</name>
+    <description>Web (Playwright) + iOS (Appium) automation for Admin, Vendor Panel, Storefront and the Storefront app, using TestNG</description>
+
+    <!-- ─────────────────────────────────────────
+         GLOBAL VERSION PROPERTIES
+         Change a version here — it updates everywhere
+    ───────────────────────────────────────── -->
+    <properties>
+        <!-- Java -->
+        <java.version>17</java.version>
+        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- Core test stack -->
+        <playwright.version>1.44.0</playwright.version>
+        <testng.version>7.10.2</testng.version>
+
+        <!-- Mobile (iOS) -->
+        <appium.version>9.3.0</appium.version>
+        <selenium.version>4.26.0</selenium.version>
+
+        <!-- Allure -->
+        <allure.version>2.27.0</allure.version>
+        <allure.testng.version>2.27.0</allure.testng.version>
+        <aspectj.version>1.9.22</aspectj.version>
+
+        <!-- Logging -->
+        <log4j.version>2.23.1</log4j.version>
+
+        <!-- Utilities -->
+        <jackson.version>2.17.1</jackson.version>
+        <lombok.version>1.18.32</lombok.version>
+        <faker.version>1.0.2</faker.version>
+
+        <!-- Maven plugins -->
+        <maven.surefire.version>3.2.5</maven.surefire.version>
+        <maven.compiler.version>3.13.0</maven.compiler.version>
+        <allure.maven.version>2.12.0</allure.maven.version>
+
+        <!-- TestNG suite file — override from CLI:
+             mvn test -DsuiteFile=src/test/resources/testng-suites/website-regression-dev.xml -->
+        <suiteFile>src/test/resources/testng-suites/website-smoke-dev.xml</suiteFile>
+
+        <!-- Target environment — picks src/test/resources/config-${env}.properties.
+             Defaults to dev so a bare `mvn test` can never reach production.
+             Override from CLI:  mvn test -Denv=live  (or -Plive) -->
+        <env>dev</env>
+
+        <!-- Mobile capability overrides. Deliberately EMPTY: these exist only so the
+             matching <systemPropertyVariables> entries below resolve to a blank string
+             rather than the literal text "${mobile.udid}". ConfigReader treats blank as
+             "not set" and falls back to config-${env}.properties, so the real values
+             live there. Override from CLI:  mvn test -Pmobile -Dmobile.udid=<other-sim> -->
+        <mobile.platform/>
+        <mobile.appium.url/>
+        <mobile.device.name/>
+        <mobile.udid/>
+        <mobile.platform.version/>
+        <mobile.bundle.id/>
+        <mobile.place.orders/>
+        <!-- Android only: the app package and launcher activity Appium starts.
+             Read them off an APK with:  aapt2 dump badging app-release.apk -->
+        <mobile.app.package/>
+        <mobile.app.activity/>
+        <!-- Android device selection. These are SEPARATE from mobile.udid / mobile.device.name /
+             mobile.platform.version above, which describe the iOS simulator: an Android run that
+             fell back to those was handed the iOS simulator's UDID. Must be listed in
+             <systemPropertyVariables> too, or -Dmobile.android.udid=... is silently ignored and
+             the run targets whichever device adb lists first. -->
+        <mobile.android.udid/>
+        <mobile.android.device.name/>
+        <mobile.android.platform.version/>
+    </properties>
+
+    <!-- ─────────────────────────────────────────
+         DEPENDENCY MANAGEMENT
+         Pin ALL Selenium modules to one version via the BOM.
+         The Appium client pulls in a newer selenium-api that removed
+         ContextAware / html5.LocationContext; this forces 4.26.0 everywhere
+         so those classes are present and consistent.
+    ───────────────────────────────────────── -->
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.seleniumhq.selenium</groupId>
+                <artifactId>selenium-bom</artifactId>
+                <version>${selenium.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <!-- ─────────────────────────────────────────
+         DEPENDENCIES
+    ───────────────────────────────────────── -->
+    <dependencies>
+
+        <!-- ── 1. PLAYWRIGHT ─────────────────── -->
+        <dependency>
+            <groupId>com.microsoft.playwright</groupId>
+            <artifactId>playwright</artifactId>
+            <version>1.47.0</version>
+        </dependency>
+
+        <!-- SLF4J API -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>2.0.11</version>
+        </dependency>
+
+        <!-- ── 2. TESTNG ─────────────────────── -->
+        <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <version>${testng.version}</version>
+        </dependency>
+
+        <!-- ── 3. APPIUM (iOS / mobile) ──────── -->
+        <!-- Brings in Selenium transitively; versions are pinned by the BOM above -->
+        <dependency>
+            <groupId>io.appium</groupId>
+            <artifactId>java-client</artifactId>
+            <version>${appium.version}</version>
+        </dependency>
+
+        <!-- ── 4. ALLURE ─────────────────────── -->
+        <dependency>
+            <groupId>io.qameta.allure</groupId>
+            <artifactId>allure-testng</artifactId>
+            <version>${allure.testng.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.qameta.allure</groupId>
+            <artifactId>allure-java-commons</artifactId>
+            <version>${allure.version}</version>
+        </dependency>
+
+        <!-- AspectJ — required for Allure @Step AOP weaving -->
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjweaver</artifactId>
+            <version>${aspectj.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- ── 5. LOG4J2 ─────────────────────── -->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+            <version>${log4j.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>${log4j.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-slf4j2-impl</artifactId>
+            <version>${log4j.version}</version>
+        </dependency>
+
+        <!-- ── 6. JACKSON (JSON test data) ───── -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+
+        <!-- ── 7. LOMBOK (boilerplate reduction) -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- ── 8. JAVA FAKER (random test data) -->
+        <dependency>
+            <groupId>com.github.javafaker</groupId>
+            <artifactId>javafaker</artifactId>
+            <version>${faker.version}</version>
+        </dependency>
+
+    </dependencies>
+
+    <!-- ─────────────────────────────────────────
+         BUILD PLUGINS
+    ───────────────────────────────────────── -->
+    <build>
+        <testResources>
+            <testResource>
+                <directory>src/test/resources</directory>
+                <filtering>false</filtering>
+            </testResource>
+        </testResources>
+
+        <plugins>
+
+            <!-- ── Maven Compiler ────────────── -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven.compiler.version}</version>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <encoding>UTF-8</encoding>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+
+            <!-- ── Maven Surefire (TestNG runner) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven.surefire.version}</version>
+                <configuration>
+                    <suiteXmlFiles>
+                        <suiteXmlFile>${suiteFile}</suiteXmlFile>
+                    </suiteXmlFiles>
+
+                    <argLine>
+                        -javaagent:"${settings.localRepository}/org/aspectj/aspectjweaver/${aspectj.version}/aspectjweaver-${aspectj.version}.jar"
+                    </argLine>
+
+                    <systemPropertyVariables>
+                        <allure.results.directory>
+                            ${project.build.directory}/allure-results
+                        </allure.results.directory>
+
+                        <!-- Explicitly hand the env selector to the forked JVM so
+                             ConfigReader picks config-${env}.properties. -->
+                        <env>${env}</env>
+
+                        <!-- Surefire does NOT forward arbitrary -D properties into the
+                             fork, so every overridable mobile key has to be listed here
+                             or `-Dmobile.udid=...` silently does nothing. Each defaults
+                             to empty, and ConfigReader ignores blanks and falls back to
+                             config-${env}.properties. -->
+                        <mobile.platform>${mobile.platform}</mobile.platform>
+                        <mobile.appium.url>${mobile.appium.url}</mobile.appium.url>
+                        <mobile.device.name>${mobile.device.name}</mobile.device.name>
+                        <mobile.udid>${mobile.udid}</mobile.udid>
+                        <mobile.platform.version>${mobile.platform.version}</mobile.platform.version>
+                        <mobile.bundle.id>${mobile.bundle.id}</mobile.bundle.id>
+                        <mobile.place.orders>${mobile.place.orders}</mobile.place.orders>
+                        <mobile.app.package>${mobile.app.package}</mobile.app.package>
+                        <mobile.app.activity>${mobile.app.activity}</mobile.app.activity>
+                        <mobile.android.udid>${mobile.android.udid}</mobile.android.udid>
+                        <mobile.android.device.name>${mobile.android.device.name}</mobile.android.device.name>
+                        <mobile.android.platform.version>${mobile.android.platform.version}</mobile.android.platform.version>
+                    </systemPropertyVariables>
+
+                    <testFailureIgnore>true</testFailureIgnore>
+
+                    <forkCount>1</forkCount>
+                    <reuseForks>true</reuseForks>
+                </configuration>
+            </plugin>
+
+            <!-- ── Allure Maven Plugin ────────── -->
+            <plugin>
+                <groupId>io.qameta.allure</groupId>
+                <artifactId>allure-maven</artifactId>
+                <version>${allure.maven.version}</version>
+                <configuration>
+                    <reportVersion>${allure.version}</reportVersion>
+                    <resultsDirectory>
+                        ${project.build.directory}/allure-results
+                    </resultsDirectory>
+                    <reportDirectory>
+                        ${project.build.directory}/allure-report
+                    </reportDirectory>
+                </configuration>
+            </plugin>
+
+            <!-- ── Copy Allure categories.json into results dir ── -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.3.1</version>
+                <executions>
+                    <execution>
+                        <id>copy-allure-categories</id>
+                        <phase>process-test-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/allure-results</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>src/test/resources</directory>
+                                    <includes>
+                                        <include>categories.json</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+        </plugins>
+    </build>
+
+    <!-- ─────────────────────────────────────────
+         REPORTING (mvn site generates this)
+    ───────────────────────────────────────── -->
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>io.qameta.allure</groupId>
+                <artifactId>allure-maven</artifactId>
+                <version>${allure.maven.version}</version>
+            </plugin>
+        </plugins>
+    </reporting>
+
+    <!-- ─────────────────────────────────────────
+         BUILD PROFILES
+         Usage:
+           mvn test -Psmoke
+           mvn test -Pregression
+           mvn test -Pheadless
+
+         Suite and environment are independent — combine them:
+           mvn test -Psmoke                  (smoke on dev — dev is the default)
+           mvn test -Psmoke,live             (smoke on live)
+           mvn test -Pregression,live        (full regression on live)
+           mvn test -Pregression -Denv=live  (same thing, without the profile)
+    ───────────────────────────────────────── -->
+    <profiles>
+
+        <!-- ── Website suites ─────────────────────────────────────
+             Four suites: smoke/regression × dev/live. The dev suites are full and mutating;
+             the live suites are READ-ONLY (safe on production). Env is pinned per profile.
+               mvn test -Psmoke              website smoke, dev
+               mvn test -Psmoke-live         website smoke, live (read-only)
+               mvn test -Pregression         website regression, dev
+               mvn test -Pregression-live    website regression, live (read-only) -->
+
+        <!-- Website smoke — DEV -->
+        <profile>
+            <id>smoke</id>
+            <properties>
+                <suiteFile>
+                    src/test/resources/testng-suites/website-smoke-dev.xml
+                </suiteFile>
+                <env>dev</env>
+            </properties>
+        </profile>
+
+        <!-- Website smoke — LIVE (read-only) -->
+        <profile>
+            <id>smoke-live</id>
+            <properties>
+                <suiteFile>
+                    src/test/resources/testng-suites/website-smoke-live.xml
+                </suiteFile>
+                <env>live</env>
+            </properties>
+        </profile>
+
+        <!-- Website regression — DEV -->
+        <profile>
+            <id>regression</id>
+            <properties>
+                <suiteFile>
+                    src/test/resources/testng-suites/website-regression-dev.xml
+                </suiteFile>
+                <env>dev</env>
+            </properties>
+        </profile>
+
+        <!-- Website regression — LIVE (read-only) -->
+        <profile>
+            <id>regression-live</id>
+            <properties>
+                <suiteFile>
+                    src/test/resources/testng-suites/website-regression-live.xml
+                </suiteFile>
+                <env>live</env>
+            </properties>
+        </profile>
+
+        <!-- ── Mobile (iOS) ───────────────────────────────────────
+             Both pin env=dev: the installed app build only talks to the dev backend, and
+             MobileSuiteListener aborts the run if -Denv says otherwise. Both also turn
+             testFailureIgnore OFF — the web default of true means a red suite still exits 0,
+             which would make the retry analyzer decorate a report nothing gates on.
+
+             Needs a booted simulator and a running Appium server; see the suite XML header.
+             Override the target device without a recompile:
+               mvn test -Pmobile-ios -Dmobile.udid=<other-sim-udid>
+             Enable the tests that place a real COD order (dev only, off by default):
+               mvn test -Pmobile-ios -Dmobile.place.orders=true -->
+
+        <!-- iOS regression -->
+        <profile>
+            <id>mobile-ios</id>
+            <properties>
+                <suiteFile>
+                    src/test/resources/testng-suites/mobile-ios-regression.xml
+                </suiteFile>
+                <env>dev</env>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>${maven.surefire.version}</version>
+                        <configuration>
+                            <testFailureIgnore>false</testFailureIgnore>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- ── Android ────────────────────────────────────────────
+             Prerequisites:  Appium started with ANDROID_HOME exported (the UiAutomator2 driver
+             needs the SDK)  +  a booted emulator or attached device (`adb devices`) with
+             com.example.storefront installed.
+               mvn test -Pmobile-android            full Android regression
+               mvn test -Pmobile-android-smoke      the short Android run
+             Target a specific device when more than one is attached:
+               mvn test -Pmobile-android -Dmobile.android.udid=<serial> -->
+
+        <!-- Android regression -->
+        <profile>
+            <id>mobile-android</id>
+            <properties>
+                <suiteFile>
+                    src/test/resources/testng-suites/mobile-android-regression.xml
+                </suiteFile>
+                <env>dev</env>
+                <mobile.platform>android</mobile.platform>
+                <mobile.device.name>Android Emulator</mobile.device.name>
+                <!-- Blank udid = let Appium pick the only attached device. Override with -D
+                     when more than one is connected. -->
+                </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>${maven.surefire.version}</version>
+                        <configuration>
+                            <testFailureIgnore>false</testFailureIgnore>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Android smoke — the short run -->
+        <profile>
+            <id>mobile-android-smoke</id>
+            <properties>
+                <suiteFile>
+                    src/test/resources/testng-suites/mobile-android-smoke.xml
+                </suiteFile>
+                <env>dev</env>
+                <mobile.platform>android</mobile.platform>
+                <mobile.device.name>Android Emulator</mobile.device.name>
+                </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>${maven.surefire.version}</version>
+                        <configuration>
+                            <testFailureIgnore>false</testFailureIgnore>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- iOS smoke — the short run -->
+        <profile>
+            <id>mobile-ios-smoke</id>
+            <properties>
+                <suiteFile>
+                    src/test/resources/testng-suites/mobile-ios-smoke.xml
+                </suiteFile>
+                <env>dev</env>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>${maven.surefire.version}</version>
+                        <configuration>
+                            <testFailureIgnore>false</testFailureIgnore>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- ── Environment selection ──────────────────────────────
+             Picks which src/test/resources/config-*.properties is read.
+             Equivalent to -Denv=dev / -Denv=live. -->
+
+        <!-- Dev environment (example) — also the default with no profile -->
+        <profile>
+            <id>dev</id>
+            <properties>
+                <env>dev</env>
+            </properties>
+        </profile>
+
+        <!-- Live/production environment (example) — must be asked for -->
+        <profile>
+            <id>live</id>
+            <properties>
+                <env>live</env>
+            </properties>
+        </profile>
+
+        <!-- Headless mode for CI -->
+        <profile>
+            <id>headless</id>
+            <properties>
+                <headless>true</headless>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>${maven.surefire.version}</version>
+                        <configuration>
+                            <systemPropertyVariables>
+                                <headless>true</headless>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!--
+          ── Pin the build to JDK 17 when Maven is launched on a newer JDK ──────────────
+
+          The project targets Java 17 (java.version above). Its build-time dependencies do not
+          understand newer class files: the Allure AspectJ weaver (aspectjweaver, loaded as a
+          -javaagent by Surefire) throws "Unsupported class file major version NN" at startup,
+          and the Lombok annotation processor fails a clean compile the same way. On a machine
+          whose default `java`/`mvn` is a newer JDK (e.g. Homebrew's openjdk 26) this surfaces as
+          a scary aspect-weaver stack trace right where ConfigReader logs — even though the tests
+          themselves still pass.
+
+          This profile activates ONLY when Maven runs on JDK 18 or newer, and routes compilation
+          and the test fork through a registered JDK 17 toolchain so both the compiler and the
+          AspectJ agent run on 17. On a machine already using JDK 17 the profile stays dormant and
+          nothing changes.
+
+          One-time setup per machine — register JDK 17 in ~/.m2/toolchains.xml:
+
+            <?xml version="1.0" encoding="UTF-8"?>
+            <toolchains>
+              <toolchain>
+                <type>jdk</type>
+                <provides><version>17</version></provides>
+                <configuration>
+                  <jdkHome>/path/to/your/jdk-17</jdkHome>
+                </configuration>
+              </toolchain>
+            </toolchains>
+        -->
+        <profile>
+            <id>jdk17-toolchain</id>
+            <activation>
+                <jdk>[18,)</jdk>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-toolchains-plugin</artifactId>
+                        <version>3.2.0</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>toolchain</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <toolchains>
+                                <jdk>
+                                    <version>17</version>
+                                </jdk>
+                            </toolchains>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+</project>

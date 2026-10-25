@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+
+<!--
+  Website SMOKE — DEV. Fast confidence checks (auth across admin / vendor / storefront).
+  Run:  mvn test -Psmoke            (env defaults to dev)
+-->
+<suite name="Website smoke (dev)" verbose="1" parallel="false">
+
+    <test name="Login smoke (admin + vendor + storefront)">
+        <classes>
+            <class name="com.portfolio.ecommerce.tests.website.admin.AdminLoginTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.vendor.VendorLoginTest"/>
+            <class name="com.portfolio.ecommerce.tests.website.storefront.StorefrontLoginTest"/>
+        </classes>
+    </test>
+
+</suite>

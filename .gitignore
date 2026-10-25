@@ -1,0 +1,16 @@
+target/
+.idea/
+*.iml
+src/test/resources/config-*.properties
+config-*.properties
+allure-results/
+allure-report/
+screenshots/
+videos/
+traces/
+.allure/
+*.zip
+*.webm
+*.mp4
+.DS_Store
+Thumbs.db
