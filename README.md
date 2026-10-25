@@ -1,4 +1,4 @@
-# Playwright and Appium E-commerce Automation Framework
+# E-commerce Web and Mobile Automation Framework
 
 Java automation for a private multi-role commerce application and its customer mobile flow. The repository demonstrates web page objects, API-aware checks, and mobile screen objects; the Android screens are in progress.
 
